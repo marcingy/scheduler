@@ -1,0 +1,6 @@
+{
+  "name": "drupal/scheduler",
+  "description": "This module allows nodes to be published and unpublished on specified dates.",
+  "type": "drupal-module",
+  "license": "GPL-2.0+"
+}
