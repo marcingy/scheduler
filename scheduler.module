@@ -13,7 +13,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
  */
 function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
   if ($entity_type->id() === 'node') {
-    $fields['publishon'] = BaseFieldDefinition::create('timestamp')
+    $fields['publish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Publish on'))
       ->setTranslatable(TRUE)
       ->setDisplayOptions('view', array(
@@ -27,7 +27,7 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
       ))
       ->setDisplayConfigurable('form', TRUE);
 
-    $fields['unpublishon'] = BaseFieldDefinition::create('timestamp')
+    $fields['unpublish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Unpublish on'))
       ->setTranslatable(TRUE)
       ->setDisplayOptions('view', array(
