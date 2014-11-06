@@ -1,0 +1,46 @@
+<?php
+
+/**
+ * @file
+ * Enables users to schedule nodes for publication.
+ */
+
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
+  if ($entity_type->id() === 'node') {
+    $fields['publishon'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(t('Publish on'))
+      ->setTranslatable(TRUE)
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'timestamp',
+        'weight' => 0,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'datetime_timestamp',
+        'weight' => 10,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
+
+    $fields['unpublishon'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(t('Unpublish on'))
+      ->setTranslatable(TRUE)
+      ->setDisplayOptions('view', array(
+        'label' => 'hidden',
+        'type' => 'timestamp',
+        'weight' => 0,
+      ))
+      ->setDisplayOptions('form', array(
+        'type' => 'datetime_timestamp',
+        'weight' => 10,
+      ))
+      ->setDisplayConfigurable('form', TRUE);
+
+    return $fields;
+  }
+}

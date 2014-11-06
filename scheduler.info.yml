@@ -1,0 +1,6 @@
+type: module
+name: Scheduler
+description: 'Schedule nodes for publication.'
+core: 8.x
+dependencies:
+  - datetime
