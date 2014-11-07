@@ -16,7 +16,7 @@ function scheduler_form_node_form_alter(&$form, FormStateInterface $form_state) 
   $form['scheduler_settings'] = array(
     '#type' => 'details',
     '#title' => t('Scheduler settings'),
-    '#open' => !empty($form['path']['widget'][0]['alias']['#value']),
+    '#open' => FALSE,
     '#group' => 'advanced',
     '#attributes' => array(
       'class' => array('scheduler-form'),
@@ -38,30 +38,24 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
     $fields['publish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Publish on'))
       ->setTranslatable(TRUE)
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'timestamp',
-        'weight' => 0,
-      ))
       ->setDisplayOptions('form', array(
         'type' => 'datetime_timestamp',
         'weight' => 10,
       ))
-      ->setDisplayConfigurable('form', TRUE);
+      ->setDisplayConfigurable('form', TRUE)
+      ->setSetting('unsigned', TRUE)
+      ->setRevisionable(TRUE);
 
     $fields['unpublish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Unpublish on'))
       ->setTranslatable(TRUE)
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'timestamp',
-        'weight' => 0,
-      ))
       ->setDisplayOptions('form', array(
         'type' => 'datetime_timestamp',
         'weight' => 10,
       ))
-      ->setDisplayConfigurable('form', TRUE);
+      ->setDisplayConfigurable('form', TRUE)
+      ->setSetting('unsigned', TRUE)
+      ->setRevisionable(TRUE);
 
     return $fields;
   }
