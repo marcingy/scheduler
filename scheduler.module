@@ -7,6 +7,28 @@
 
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function scheduler_form_node_form_alter(&$form, FormStateInterface $form_state) {
+  $form['scheduler_settings'] = array(
+    '#type' => 'details',
+    '#title' => t('Scheduler settings'),
+    '#open' => !empty($form['path']['widget'][0]['alias']['#value']),
+    '#group' => 'advanced',
+    '#attributes' => array(
+      'class' => array('scheduler-form'),
+    ),
+    '#attached' => array(
+      'library' => array('scheduler/drupal.scheduler'),
+    ),
+    '#weight' => 30,
+  );
+  $form['publish_on']['#group'] = 'scheduler_settings';
+  $form['unpublish_on']['#group'] = 'scheduler_settings';
+}
 
 /**
  * Implements hook_entity_base_field_info().

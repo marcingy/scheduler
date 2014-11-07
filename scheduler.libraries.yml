@@ -1,0 +1,8 @@
+drupal.scheduler:
+  version: VERSION
+  js:
+    scheduler.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupal.form
