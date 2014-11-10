@@ -7,6 +7,28 @@
 
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function scheduler_form_node_form_alter(&$form, FormStateInterface $form_state) {
+  $form['scheduler_settings'] = array(
+    '#type' => 'details',
+    '#title' => t('Scheduler settings'),
+    '#open' => FALSE,
+    '#group' => 'advanced',
+    '#attributes' => array(
+      'class' => array('scheduler-form'),
+    ),
+    '#attached' => array(
+      'library' => array('scheduler/drupal.scheduler'),
+    ),
+    '#weight' => 30,
+  );
+  $form['publish_on']['#group'] = 'scheduler_settings';
+  $form['unpublish_on']['#group'] = 'scheduler_settings';
+}
 
 /**
  * Implements hook_entity_base_field_info().
@@ -16,30 +38,24 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
     $fields['publish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Publish on'))
       ->setTranslatable(TRUE)
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'timestamp',
-        'weight' => 0,
-      ))
       ->setDisplayOptions('form', array(
-        'type' => 'datetime_timestamp',
+        'type' => 'datetime_timestamp_none',
         'weight' => 10,
       ))
-      ->setDisplayConfigurable('form', TRUE);
+      ->setDisplayConfigurable('form', TRUE)
+      ->setSetting('unsigned', TRUE)
+      ->setRevisionable(TRUE);
 
     $fields['unpublish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Unpublish on'))
       ->setTranslatable(TRUE)
-      ->setDisplayOptions('view', array(
-        'label' => 'hidden',
-        'type' => 'timestamp',
-        'weight' => 0,
-      ))
       ->setDisplayOptions('form', array(
-        'type' => 'datetime_timestamp',
+        'type' => 'datetime_timestamp_none',
         'weight' => 10,
       ))
-      ->setDisplayConfigurable('form', TRUE);
+      ->setDisplayConfigurable('form', TRUE)
+      ->setSetting('unsigned', TRUE)
+      ->setRevisionable(TRUE);
 
     return $fields;
   }
