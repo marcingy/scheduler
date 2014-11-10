@@ -39,7 +39,7 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
       ->setLabel(t('Publish on'))
       ->setTranslatable(TRUE)
       ->setDisplayOptions('form', array(
-        'type' => 'datetime_timestamp',
+        'type' => 'datetime_timestamp_none',
         'weight' => 10,
       ))
       ->setDisplayConfigurable('form', TRUE)
@@ -50,7 +50,7 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
       ->setLabel(t('Unpublish on'))
       ->setTranslatable(TRUE)
       ->setDisplayOptions('form', array(
-        'type' => 'datetime_timestamp',
+        'type' => 'datetime_timestamp_none',
         'weight' => 10,
       ))
       ->setDisplayConfigurable('form', TRUE)
