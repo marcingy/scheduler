@@ -79,6 +79,9 @@ function scheduler_cron() {
 
 /**
  * Publish scheduled nodes.
+ *
+ * @param array $plugins
+ *   List of plugins to act against.
  */
 function _scheduler_publish($plugins) {
   $nids = [];
@@ -122,6 +125,9 @@ function _scheduler_publish($plugins) {
 
 /**
  * Unpublish scheduled nodes.
+ *
+ * @param array $plugins
+ *   List of plugins to act against.
  */
 function _scheduler_unpublish($plugins) {
   $nids = [];
