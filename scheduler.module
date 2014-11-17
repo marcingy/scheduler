@@ -60,3 +60,163 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
     return $fields;
   }
 }
+
+/**
+ * Implements hook_cron().
+ *
+ * Queues news feeds for updates once their refresh interval has elapsed.
+ */
+function scheduler_cron() {
+  _scheduler_publish();
+  //_scheduler_unpublish();
+}
+
+/**
+ * Publish scheduled nodes.
+ *
+ * @return bool
+ *   TRUE if any node has been published, FALSE otherwise.
+ */
+function _scheduler_publish() {
+  $plugins_defintions = \Drupal::service('plugin.manager.scheduler.plugin')->getDefinitions();
+  if (empty($plugins_defintions)) {
+    return;
+  }
+  $nids = $plugins = [];
+  foreach ($plugins_defintions as $plugin => $definition) {
+    $plugins[$plugin] = \Drupal::service('plugin.manager.scheduler.plugin')->createInstance($plugin, array());
+  }
+
+  foreach ($plugins as $plugin) {
+    $nids += $plugin->getPublishedNodes();
+  }
+
+  // Allow other modules to alter the list of nodes to be published.
+  Drupal::moduleHandler()->alter('scheduler_nid_list_publish', $nids);
+
+  $nodes = entity_load_multiple('node', $nids);
+  foreach ($nodes as $node) {
+    // Check that other modules allow the action on this node.
+    foreach ($plugins as $plugin) {
+      if (!$plugin->allowPublishing($node)) {
+        continue;
+      }
+    }
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->prePublish($node);
+    }
+
+    // Should this be moved to base plugin? We always want it to happen though
+    // even if overriden.
+    $node->set('publish_on', NULL);
+
+    // Use the actions system to publish the node.
+    // Convert to new system for actions and logging
+    \Drupal::logger('scheduler')->notice('@type: scheduled publishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->id(), array('alias' => TRUE)));
+    $action_manger = \Drupal::service('plugin.manager.action');
+    $action = $action_manger->createInstance('node_publish_action');
+    $action->execute($node);
+    $action = $action_manger->createInstance('node_save_action');
+    $action->execute($node);
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->publish($node);
+    }
+  }
+}
+
+/**
+ * Unpublish scheduled nodes.
+ *
+ * @return bool
+ *   TRUE is any node has been unpublished, FALSE otherwise.
+ */
+function _scheduler_unpublish() {
+  $plugins = \Drupal::service('plugin.manager.scheduler.plugin')->getDefinitions();
+  $nids = array();
+  foreach ($plugins as $plugin) {
+    $nids += $plugin->getUnPublishedNodes();
+  }
+
+  Drupal::moduleHandler()->alter('scheduler_nid_list_unpublish', $nids);
+
+  $nodes = entity_load_multiple('node', $nids);
+  foreach ($nodes as $node) {
+    // Check that other modules allow the action on this node.
+    foreach ($plugins as $plugin) {
+      if (!$plugin->allowUnPublishing($node)) {
+        continue;
+      }
+    }
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->preUnPublish($node);
+    }
+
+    // Should this be moved to base plugin? We always want it to happen though
+    // even if overriden.
+    $node->set('unpublish_on', NULL);
+
+    \Drupal::logger('scheduler')->notice('@type: scheduled unpublishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->getId(), array('alias' => TRUE)));
+    $action_manger = \Drupal::service('plugin.manager.action');
+    $action = $action_manger->createInstance('node_unpublish_action');
+    $action->execute($node);
+    $action = $action_manger->createInstance('node_save_action');
+    $action->execute($node);
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->unPublish($node);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_presave().
+ */
+/*function scheduler_node_presave($node) {
+  foreach (array('publish_on', 'unpublish_on') as $key) {
+    if (empty($node->$key) || is_array($node->$key)) {
+      // Make sure publish_on and unpublish_on are not empty strings.
+      $node->$key = 0;
+    }
+    elseif (!is_numeric($node->$key)) {
+      // Convert to unix timestamp, but ensure any failure is converted to zero.
+      $node->$key = _scheduler_strtotime($node->$key) + 0;
+    }
+  }
+
+  if ($node->publish_on > 0) {
+    // Check that other modules allow the action on this node.
+    $publication_allowed = _scheduler_allow($node, 'publish');
+
+    // Publish the node immediately if the publication date is in the past.
+    $publish_immediately = variable_get('scheduler_publish_past_date_' . $node->type, 'error') == 'publish';
+    if ($publication_allowed && $publish_immediately && $node->publish_on <= REQUEST_TIME) {
+      // If required, set the created date to match published date.
+      if (variable_get('scheduler_publish_touch_' . $node->type, 0) == 1) {
+        $node->created = $node->publish_on;
+      }
+      $node->publish_on = 0;
+      $node->status = 1;
+      // Allow modules to react to immediate publishing.
+      _scheduler_scheduler_api($node, 'publish_immediately');
+    }
+    else {
+      // Ensure the node is unpublished as it will be published by cron later.
+      $node->status = 0;
+
+      // Only inform the user that the node is scheduled if publication has not
+      // been prevented by other modules. Those modules have to display a
+      // message themselves explaining why publication is denied.
+      if ($publication_allowed) {
+        $date_format = variable_get('scheduler_date_format', SCHEDULER_DATE_FORMAT);
+        drupal_set_message(t('This post is unpublished and will be published @publish_time.', array('@publish_time' => format_date($node->publish_on, 'custom', $date_format))), 'status', FALSE);
+      }
+    }
+  }
+}*/
