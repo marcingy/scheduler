@@ -60,3 +60,105 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
     return $fields;
   }
 }
+
+/**
+ * Implements hook_cron().
+ */
+function scheduler_cron() {
+  _scheduler_publish();
+  _scheduler_unpublish();
+}
+
+/**
+ * Publish scheduled nodes.
+ */
+function _scheduler_publish() {
+  $plugins_defintions = \Drupal::service('plugin.manager.scheduler.plugin')->getDefinitions();
+  if (empty($plugins_defintions)) {
+    return;
+  }
+  $nids = $plugins = [];
+  foreach ($plugins_defintions as $plugin => $definition) {
+    $plugins[$plugin] = \Drupal::service('plugin.manager.scheduler.plugin')->createInstance($plugin, array());
+  }
+
+  foreach ($plugins as $plugin) {
+    $nids += $plugin->getPublishedNodes();
+  }
+
+  // Allow other modules to alter the list of nodes to be published.
+  Drupal::moduleHandler()->alter('scheduler_nid_list_publish', $nids);
+
+  $nodes = entity_load_multiple('node', $nids);
+  foreach ($nodes as $node) {
+    // Check that other modules allow the action on this node.
+    foreach ($plugins as $plugin) {
+      if (!$plugin->allowPublishing($node)) {
+        continue;
+      }
+    }
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->prePublish($node);
+    }
+
+    // We always want this to happen.
+    $node->set('publish_on', NULL);
+
+    \Drupal::logger('scheduler')->notice('@type: scheduled publishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->id(), array('alias' => TRUE)));
+    $action_manger = \Drupal::service('plugin.manager.action');
+    $action = $action_manger->createInstance('node_publish_action');
+    $action->execute($node);
+    $action = $action_manger->createInstance('node_save_action');
+    $action->execute($node);
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->publish($node);
+    }
+  }
+}
+
+/**
+ * Unpublish scheduled nodes.
+ */
+function _scheduler_unpublish() {
+  $plugins = \Drupal::service('plugin.manager.scheduler.plugin')->getDefinitions();
+  $nids = array();
+  foreach ($plugins as $plugin) {
+    $nids += $plugin->getUnPublishedNodes();
+  }
+
+  Drupal::moduleHandler()->alter('scheduler_nid_list_unpublish', $nids);
+
+  $nodes = entity_load_multiple('node', $nids);
+  foreach ($nodes as $node) {
+    // Check that other modules allow the action on this node.
+    foreach ($plugins as $plugin) {
+      if (!$plugin->allowUnPublishing($node)) {
+        continue;
+      }
+    }
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->preUnPublish($node);
+    }
+
+    // We always want this to happen.
+    $node->set('unpublish_on', NULL);
+
+    \Drupal::logger('scheduler')->notice('@type: scheduled unpublishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->getId(), array('alias' => TRUE)));
+    $action_manger = \Drupal::service('plugin.manager.action');
+    $action = $action_manger->createInstance('node_unpublish_action');
+    $action->execute($node);
+    $action = $action_manger->createInstance('node_save_action');
+    $action->execute($node);
+
+    // Perform tweaks to the node.
+    foreach ($plugins as $plugin) {
+      $plugin->unPublish($node);
+    }
+  }
+}
