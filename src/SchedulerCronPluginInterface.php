@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\scheduler\SchedulerPluginInterface.
+ * Contains \Drupal\scheduler\SchedulerCronPluginInterface.
  */
 
 namespace Drupal\scheduler;
@@ -13,7 +13,7 @@ use Drupal\node\NodeInterface;
 /**
  * Defines the interface for scheduler plugins.
  */
-interface SchedulerPluginInterface extends PluginInspectionInterface {
+interface SchedulerCronPluginInterface extends PluginInspectionInterface {
 
   /**
    * Gets list of nodes to be published.

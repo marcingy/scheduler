@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Contains \Drupal\Scheduler\SchedulerPluginBase
+ * Contains \Drupal\Scheduler\SchedulerCronPluginBase
  */
 
 namespace Drupal\scheduler;
@@ -10,13 +10,13 @@ use Drupal\Component\Plugin\PluginBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\node\NodeInterface;
-use Drupal\scheduler\SchedulerPluginInterface;
+use Drupal\scheduler\SchedulerCronPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Base class for scheduler plugins.
  */
-abstract class SchedulerPluginBase extends PluginBase implements SchedulerPluginInterface, ContainerFactoryPluginInterface {
+abstract class SchedulerCronPluginBase extends PluginBase implements SchedulerCronPluginInterface, ContainerFactoryPluginInterface {
   /**
    * The scheduler.settings config object.
    *
@@ -26,7 +26,7 @@ abstract class SchedulerPluginBase extends PluginBase implements SchedulerPlugin
 
 
   /**
-   * Constructs a Drupal\Scheduler\SchedulerPluginBase.
+   * Constructs a Drupal\Scheduler\SchedulerCronPluginBase.
    *
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.

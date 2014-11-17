@@ -1,4 +1,4 @@
 services:
-  plugin.manager.scheduler.plugin:
-    class: Drupal\scheduler\SchedulerPluginManager
+  plugin.manager.scheduler.cron:
+    class: Drupal\scheduler\SchedulerCronPluginManager
     parent: default_plugin_manager

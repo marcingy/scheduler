@@ -65,29 +65,29 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
  * Implements hook_cron().
  */
 function scheduler_cron() {
-  _scheduler_publish();
-  _scheduler_unpublish();
+  $plugins_defintions = \Drupal::service('plugin.manager.scheduler.cron')->getDefinitions();
+  if (empty($plugins_defintions)) {
+    return;
+  }
+  $plugins = [];
+  foreach ($plugins_defintions as $plugin => $definition) {
+    $plugins[$plugin] = \Drupal::service('plugin.manager.scheduler.cron')->createInstance($plugin, array());
+  }
+  _scheduler_publish($plugins);
+  _scheduler_unpublish($plugins);
 }
 
 /**
  * Publish scheduled nodes.
  */
-function _scheduler_publish() {
-  $plugins_defintions = \Drupal::service('plugin.manager.scheduler.plugin')->getDefinitions();
-  if (empty($plugins_defintions)) {
-    return;
-  }
-  $nids = $plugins = [];
-  foreach ($plugins_defintions as $plugin => $definition) {
-    $plugins[$plugin] = \Drupal::service('plugin.manager.scheduler.plugin')->createInstance($plugin, array());
-  }
-
+function _scheduler_publish($plugins) {
+  $nids = [];
   foreach ($plugins as $plugin) {
     $nids += $plugin->getPublishedNodes();
   }
 
   // Allow other modules to alter the list of nodes to be published.
-  Drupal::moduleHandler()->alter('scheduler_nid_list_publish', $nids);
+  \Drupal::moduleHandler()->alter('scheduler_nid_list_publish', $nids);
 
   $nodes = entity_load_multiple('node', $nids);
   foreach ($nodes as $node) {
@@ -123,14 +123,13 @@ function _scheduler_publish() {
 /**
  * Unpublish scheduled nodes.
  */
-function _scheduler_unpublish() {
-  $plugins = \Drupal::service('plugin.manager.scheduler.plugin')->getDefinitions();
-  $nids = array();
+function _scheduler_unpublish($plugins) {
+  $nids = [];
   foreach ($plugins as $plugin) {
     $nids += $plugin->getUnPublishedNodes();
   }
 
-  Drupal::moduleHandler()->alter('scheduler_nid_list_unpublish', $nids);
+  \Drupal::moduleHandler()->alter('scheduler_nid_list_unpublish', $nids);
 
   $nodes = entity_load_multiple('node', $nids);
   foreach ($nodes as $node) {

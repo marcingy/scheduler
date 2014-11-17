@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\scheduler\SchedulerPluginManager.
+ * Contains \Drupal\scheduler\SchedulerCronPluginManager.
  */
 
 namespace Drupal\scheduler;
@@ -14,10 +14,10 @@ use Drupal\Core\Plugin\DefaultPluginManager;
 /**
  * Manages scheduler plugins.
  */
-class SchedulerPluginManager extends DefaultPluginManager {
+class SchedulerCronPluginManager extends DefaultPluginManager {
 
   /**
-   * Constructs a new SchedulerPluginManger.
+   * Constructs a new SchedulerPluginManagerCron.
    *
    * @param \Traversable $namespaces
    *   An object that implements \Traversable which contains the root paths

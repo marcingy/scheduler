@@ -11,7 +11,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Entity\Query\QueryFactoryInterface;
 use Drupal\node\NodeInterface;
-use Drupal\scheduler\SchedulerPluginBase;
+use Drupal\scheduler\SchedulerCronPluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -23,7 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   description = @Translation("Default scheduler cron.")
  * )
  */
-class Scheduler extends SchedulerPluginBase {
+class Scheduler extends SchedulerCronPluginBase {
 
   /**
    * The entity query object.
@@ -52,7 +52,7 @@ class Scheduler extends SchedulerPluginBase {
    *   The factory for configuration objects.
    * @param \Drupal\Core\Entity\Query\QueryFactoryInterface $query_factory
    *   The factory for query objects.
-   * @param \Drupal\Core\Datetime\DateFormatInterface $date_formatter
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
    *   The date formatter
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory, QueryFactoryInterface $query_factory, DateFormatter $date_formatter) {
