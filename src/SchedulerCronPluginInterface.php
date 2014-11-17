@@ -85,4 +85,12 @@ interface SchedulerCronPluginInterface extends PluginInspectionInterface {
    */
   public function unPublish(NodeInterface $node);
 
+  /**
+   * Perform updates to the node when publishing immediately.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   A node object.
+   */
+  public function publishImmediately(NodeInterface $node);
+
 }
