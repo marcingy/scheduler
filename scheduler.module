@@ -228,7 +228,7 @@ function scheduler_node_presave(\Drupal\node\NodeInterface $node) {
 
     $config = \Drupal::config('scheduler.settings');
     // Publish the node immediately if the publication date is in the past.
-    if ($publication_allowed && $config->get('publish_past_date_' . $node->getType(), TRUE) && $publish_on <= REQUEST_TIME) {
+    if ($publication_allowed && $config->get('publish_past_date_error_' . $node->getType(), FALSE) && $publish_on <= REQUEST_TIME) {
       foreach ($plugins as $plugin) {
         $plugin->publishImmediately($node);
       }
