@@ -9,6 +9,9 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
 
+// The default format to use if no custom format has been configured.
+const SCHEDULER_DATE_FORMAT = 'Y-m-d H:i:s';
+
 /**
  * Implements hook_form_alter().
  */
@@ -62,17 +65,29 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
 }
 
 /**
+ * Grab a list of plugins for use by the scheduler.
+ *
+ * @return array
+ *   Array of plugin instances.
+ */
+function scheduler_get_plugins() {
+  static $plugins;
+  if (!isset($plugins)) {
+    $plugins_defintions = \Drupal::service('plugin.manager.scheduler.cron')->getDefinitions();
+    $plugins = [];
+    foreach ($plugins_defintions as $plugin => $definition) {
+      $plugins[$plugin] = \Drupal::service('plugin.manager.scheduler.cron')->createInstance($plugin, array());
+    }
+  }
+
+  return $plugins;
+}
+
+/**
  * Implements hook_cron().
  */
 function scheduler_cron() {
-  $plugins_defintions = \Drupal::service('plugin.manager.scheduler.cron')->getDefinitions();
-  if (empty($plugins_defintions)) {
-    return;
-  }
-  $plugins = [];
-  foreach ($plugins_defintions as $plugin => $definition) {
-    $plugins[$plugin] = \Drupal::service('plugin.manager.scheduler.cron')->createInstance($plugin, array());
-  }
+  $plugins = scheduler_get_plugins();
   _scheduler_publish($plugins);
   _scheduler_unpublish($plugins);
 }
@@ -164,6 +179,73 @@ function _scheduler_unpublish($plugins) {
     // Perform tweaks to the node.
     foreach ($plugins as $plugin) {
       $plugin->unPublish($node);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_validate().
+ */
+function scheduler_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  $publish_on = $node->get('publish_on')->value;
+  $config = \Drupal::config('scheduler.settings');
+  if (!empty($publish_on)) {
+    if ($config->get('publish_past_date_error' . $node->getType(), FALSE) && $publish_on < REQUEST_TIME) {
+      $form_state->setErrorByName('publish_on',t("The 'publish on' date must be in the future"));
+    }
+  }
+
+  $unpublish_on = $node->get('unpublish_on')->value;
+  if (!empty($unpublish_on) && $unpublish_on < REQUEST_TIME) {
+    $form_state->setErrorByName('unpublish_on', t("The 'unpublish on' date must be in the future"));
+  }
+
+  if (!empty($unpublish_on) && !empty($publish_on) && $unpublish_on < $publish_on) {
+    $form_state->setErrorByName('unpublish_on', t("The 'unpublish on' date must be later than the 'publish on' date."));
+  }
+
+  // The unpublish-on 'required' form attribute may not be set in some cases,
+  // but a value must be entered if also setting a publish-on date.
+  if ($config->get('unpublish_required_' . $node->getType(), FALSE) && empty($unpublish_on) && !empty($publish_on)) {
+    $form_state->setErrorByName('unpublish_on', t("If you set a 'publish-on' date then you must also set an 'unpublish-on' date."));
+  }
+}
+
+/**
+ * Implements hook_node_presave().
+ */
+function scheduler_node_presave(\Drupal\node\NodeInterface $node) {
+  $publish_on = $node->get('publish_on')->value;
+  if (!empty($publish_on)) {
+    $publication_allowed = TRUE;
+    $plugins = scheduler_get_plugins();
+    foreach ($plugins as $plugin) {
+      if (!$plugin->allowPublishing($node)) {
+        $publication_allowed = FALSE;
+        break;
+      }
+    }
+
+    $config = \Drupal::config('scheduler.settings');
+    // Publish the node immediately if the publication date is in the past.
+    if ($publication_allowed && $config->get('publish_past_date_error_' . $node->getType(), FALSE) && $publish_on <= REQUEST_TIME) {
+      foreach ($plugins as $plugin) {
+        $plugin->publishImmediately($node);
+      }
+      $node->set('publish_on', NULL);
+      $node->setPublished(TRUE);
+    }
+    else {
+      // Ensure the node is unpublished as it will be published by cron later.
+      $node->setPublished(FALSE);
+
+      // Only inform the user that the node is scheduled if publication has not
+      // been prevented by other modules. Those modules have to display a
+      // message themselves explaining why publication is denied.
+      if ($publication_allowed) {
+        $date_format = $config->get('date_format', SCHEDULER_DATE_FORMAT);
+        drupal_set_message(t('This post is unpublished and will be published @publish_time.', array('@publish_time' => format_date($publish_on, 'custom', $date_format))), 'status', FALSE);
+      }
     }
   }
 }

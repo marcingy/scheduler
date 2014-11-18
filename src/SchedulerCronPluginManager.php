@@ -28,7 +28,7 @@ class SchedulerCronPluginManager extends DefaultPluginManager {
    *   The module handler.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
-    parent::__construct('Plugin/scheduler/Cron', $namespaces, $module_handler, 'Drupal\scheduler\SchedulerPluginInterface', 'Drupal\scheduler\Annotation\SchedulerCron');
+    parent::__construct('Plugin/scheduler/Cron', $namespaces, $module_handler, 'Drupal\scheduler\SchedulerCronPluginInterface', 'Drupal\scheduler\Annotation\SchedulerCron');
 
     $this->alterInfo('scheduler_cron_plugins_info');
     $this->setCacheBackend($cache_backend, 'scheduler_cron_plugins');
