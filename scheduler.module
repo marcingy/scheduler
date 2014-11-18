@@ -190,7 +190,7 @@ function scheduler_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupa
   $publish_on = $node->get('publish_on')->value;
   $config = \Drupal::config('scheduler.settings');
   if (!empty($publish_on)) {
-    if ($config->get('publish_past_date_' . $node->getType(), FALSE) && $publish_on < REQUEST_TIME) {
+    if ($config->get('publish_past_date_error' . $node->getType(), FALSE) && $publish_on < REQUEST_TIME) {
       $form_state->setErrorByName('publish_on',t("The 'publish on' date must be in the future"));
     }
   }
