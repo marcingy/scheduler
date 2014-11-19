@@ -1,0 +1,7 @@
+scheduler.admin_form:
+  path: '/admin/config/content/scheduler'
+  defaults:
+    _form: 'Drupal\scheduler\Form\SchedulerAdminForm'
+    _title: 'Configure settings for scheduled publishing and unpublishing, run the lightweight cron and check your servers clock time'
+  requirements:
+    _permission: 'administer scheduler'

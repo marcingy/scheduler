@@ -1,0 +1,34 @@
+node_type.third_party.scheduler:
+  type: mapping
+  label: 'Scheduler settings'
+  mapping:
+    publish_enable:
+      type: boolean
+      label: 'Enable publishing for content'
+    publish_touch:
+      type: boolean
+      label: 'Update creation date when publishing content'
+    publish_required:
+      type: boolean
+      label: 'Publishing content date required'
+    publish_revision:
+      type: boolean
+      label: 'Publishing content aways creates a revision'
+    publish_past_date:
+      type: string
+      label: 'Publishing content allowed in past date'
+    unpublish_enable:
+      type: boolean
+      label: 'Enable unpublishing for content'
+    unpublish_required:
+      type: boolean
+      label: 'Unpublishing content date required'
+    unpublish_revision:
+      type: boolean
+      label: 'Unpublishing content aways creates a revision'
+    use_vertical_tabs:
+      type: boolean
+      label: 'Use vertical tabs'
+    expand_fieldset
+      type: boolean
+      label: 'Expand fieldset'

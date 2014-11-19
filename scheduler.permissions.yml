@@ -1,0 +1,6 @@
+schedule (un)publishing of nodes:
+  title: 'Schedule content publication'
+view scheduled content:
+  title: 'View scheduled content list'
+administer scheduler:
+  title: 'Administer scheduler'

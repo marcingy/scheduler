@@ -5,32 +5,91 @@
  * Enables users to schedule nodes for publication.
  */
 
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
-
-// The default format to use if no custom format has been configured.
-const SCHEDULER_DATE_FORMAT = 'Y-m-d H:i:s';
+use Drupal\node\NodeTypeInterface;
 
 /**
  * Implements hook_form_alter().
  */
 function scheduler_form_node_form_alter(&$form, FormStateInterface $form_state) {
-  $form['scheduler_settings'] = array(
-    '#type' => 'details',
-    '#title' => t('Scheduler settings'),
-    '#open' => FALSE,
-    '#group' => 'advanced',
-    '#attributes' => array(
-      'class' => array('scheduler-form'),
-    ),
-    '#attached' => array(
-      'library' => array('scheduler/drupal.scheduler'),
-    ),
-    '#weight' => 30,
-  );
-  $form['publish_on']['#group'] = 'scheduler_settings';
-  $form['unpublish_on']['#group'] = 'scheduler_settings';
+  // Does the user have access to scheduling.
+  $access = ['publish_on' => ['access' => FALSE], 'unpublish_on' => ['access' => FALSE]];
+  if (\Drupal::currentUser()->hasPermission('schedule (un)publishing of nodes')) {
+    $node = $form_state->getFormObject()->getEntity();
+    /** @var \Drupal\node\NodeTypeInterface $node_type */
+    $node_type = $node->type->entity;
+    $access['publish_on']['access'] = $node_type->getThirdPartySetting('scheduler', 'publish_enable', FALSE);
+    $access['unpublish_on']['access'] = $node_type->getThirdPartySetting('scheduler', 'unpublish_enable', FALSE);
+
+    if (!empty($access['publish_on']['access']) || !empty($access['unpublish_on']['access'])) {
+      $publish_on = $node->get('publish_on')->value;
+      $unpublish_on = $node->get('unpublish_on')->value;
+      // A publish_on date is required if the content type option is set and the
+      // node is being created or it currently has a scheduled publishing date.
+      $access['publish_on']['required'] = $node_type->getThirdPartySetting('scheduler', 'publish_required', FALSE)
+        && (!$node->id() || (!$node->isPublished() && !empty($publish_on)));
+
+      // An unpublish_on date is required if the content type option is set and
+      // the node is being created or the current status is published or the
+      // node is scheduled to be published.
+      $access['unpublish_on']['required'] = $node_type->getThirdPartySetting('scheduler', 'unpublish_required', FALSE)
+        && (!$node->id() || $node->isPublished() || !empty($publish_on));
+
+      $form['scheduler_settings'] = array(
+        '#title' => t('Scheduler settings'),
+        '#attributes' => array(
+          'class' => array('scheduler-form'),
+        ),
+      );
+
+      $fieldset_extended = !empty($publish_on) || !empty($unpublish_on) || $access['unpublish_on']['required'] || $access['publish_on']['required'];
+
+      if ($node_type->getThirdPartySetting('scheduler', 'use_vertical_tabs', 1)) {
+        $form['scheduler_settings'] += array(
+          '#type' => 'details',
+          '#open' => $fieldset_extended,
+          '#group' => 'advanced',
+          '#attached' => array(
+            'library' => array('scheduler/drupal.scheduler'),
+          ),
+          '#weight' => 30,
+        );
+      }
+      else {
+        $form['scheduler_settings'] += array(
+          '#type' => 'fieldset',
+          '#collapsible' => TRUE,
+          '#collapsed' => $fieldset_extended || $node_type->getThirdPartySetting('scheduler', 'expand_fieldset', FALSE),
+          '#weight' => 30,
+        );
+      }
+
+      $config = \Drupal::config('scheduler.settings');
+      $extra_info = $config->get('extra_info', '');
+      if (!empty($extra_info)) {
+        $form['scheduler_settings']['extra_info'] = array(
+          '#type' => 'item',
+          '#markup' =>  Xss::filterAdmin($extra_info),
+        );
+      }
+
+      foreach ($access as $field => $data) {
+        if (!empty($data['access'])) {
+          $form[$field]['#group'] = 'scheduler_settings';
+          if (!empty($data['required'])) {
+            $form[$field]['widget'][0]['value']['#required'] = TRUE;
+          }
+        }
+      }
+    }
+  }
+
+  foreach ($access as $field => $data) {
+    $form[$field]['#access'] = $data['access'];
+  }
 }
 
 /**
@@ -188,10 +247,12 @@ function _scheduler_unpublish($plugins) {
  */
 function scheduler_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupal\Core\Form\FormStateInterface $form_state) {
   $publish_on = $node->get('publish_on')->value;
-  $config = \Drupal::config('scheduler.settings');
+
+  /** @var \Drupal\node\NodeTypeInterface $node_type */
+  $node_type = $node->type->entity;
   if (!empty($publish_on)) {
-    if ($config->get('publish_past_date_error' . $node->getType(), FALSE) && $publish_on < REQUEST_TIME) {
-      $form_state->setErrorByName('publish_on',t("The 'publish on' date must be in the future"));
+    if ($node_type->getThirdPartySetting('scheduler', 'publish_past_date', 'error') == 'error' && $publish_on < REQUEST_TIME) {
+      $form_state->setErrorByName('publish_on', t("The 'publish on' date must be in the future"));
     }
   }
 
@@ -206,7 +267,7 @@ function scheduler_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupa
 
   // The unpublish-on 'required' form attribute may not be set in some cases,
   // but a value must be entered if also setting a publish-on date.
-  if ($config->get('unpublish_required_' . $node->getType(), FALSE) && empty($unpublish_on) && !empty($publish_on)) {
+  if ($node_type->getThirdPartySetting('scheduler', 'unpublish_required', FALSE) && empty($unpublish_on) && !empty($publish_on)) {
     $form_state->setErrorByName('unpublish_on', t("If you set a 'publish-on' date then you must also set an 'unpublish-on' date."));
   }
 }
@@ -226,9 +287,10 @@ function scheduler_node_presave(\Drupal\node\NodeInterface $node) {
       }
     }
 
-    $config = \Drupal::config('scheduler.settings');
+    /** @var \Drupal\node\NodeTypeInterface $node_type */
+    $node_type = $node->type->entity;
     // Publish the node immediately if the publication date is in the past.
-    if ($publication_allowed && $config->get('publish_past_date_error_' . $node->getType(), FALSE) && $publish_on <= REQUEST_TIME) {
+    if ($publication_allowed && $node_type->getThirdPartySetting('scheduler', 'publish_past_date', 'error') == 'publish' && $publish_on <= REQUEST_TIME) {
       foreach ($plugins as $plugin) {
         $plugin->publishImmediately($node);
       }
@@ -243,9 +305,196 @@ function scheduler_node_presave(\Drupal\node\NodeInterface $node) {
       // been prevented by other modules. Those modules have to display a
       // message themselves explaining why publication is denied.
       if ($publication_allowed) {
-        $date_format = $config->get('date_format', SCHEDULER_DATE_FORMAT);
+        $date_format = \Drupal::config('scheduler.settings')->get('date_format', 'Y-m-d H:i:s');
         drupal_set_message(t('This post is unpublished and will be published @publish_time.', array('@publish_time' => format_date($publish_on, 'custom', $date_format))), 'status', FALSE);
       }
     }
   }
+}
+
+/**
+ * Entity builder for the node type form with scheduler.
+ *
+ * @see scheduler_form_node_type_form_alter().
+ */
+function scheduler_form_node_type_form_builder($entity_type, NodeTypeInterface $type, &$form, FormStateInterface $form_state) {
+  $fields = array(
+    'publish_enable' => 'scheduler_publish_enable',
+    'publish_touch' => 'scheduler_publish_touch',
+    'publish_required' => 'scheduler_publish_required',
+    'publish_revision' => 'scheduler_publish_revision',
+    'publish_past_date' => 'scheduler_publish_past_date',
+    'unpublish_enable' => 'scheduler_unpublish_enable',
+    'unpublish_required' => 'scheduler_unpublish_required',
+    'unpublish_revision' => 'scheduler_unpublish_revision',
+    'use_vertical_tabs' => 'scheduler_use_vertical_tabs',
+    'expand_fieldset' => 'scheduler_expand_fieldset',
+  );
+  foreach ($fields as $setting => $field) {
+    $type->setThirdPartySetting('scheduler', $setting, $form_state->getValue($field));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds scheduler options to the node type form.
+ *
+ * @see NodeTypeForm::form().
+ * @see scheduler_form_node_type_form_submit().
+ */
+function scheduler_form_node_type_form_alter(&$form, FormStateInterface $form_state) {
+  $form['scheduler_settings'] = array(
+    '#type' => 'details',
+    '#title' => t('Scheduler settings'),
+    '#open' => FALSE,
+    '#group' => 'additional_settings',
+    '#attributes' => array(
+      'class' => array('scheduler-form'),
+    ),
+    '#weight' => 30,
+  );
+
+  /** @var \Drupal\node\NodeTypeInterface $type */
+  $type = $form_state->getFormObject()->getEntity();
+  $form['scheduler']['publish'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Publishing'),
+    '#collapsible' => FALSE,
+    '#weight' => 1,
+    '#group' => 'scheduler_settings',
+  );
+  $form['scheduler']['publish']['scheduler_publish_enable'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable scheduled publishing for this content type'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'publish_enable', FALSE),
+  );
+  $form['scheduler']['publish']['scheduler_publish_touch'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Change content creation time to match the scheduled publish time'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'publish_touch', FALSE),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="scheduler_publish_enable"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['scheduler']['publish']['scheduler_publish_required'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Require scheduled publishing'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'publish_required', FALSE),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="scheduler_publish_enable"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['scheduler']['publish']['scheduler_publish_revision'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Create a new revision on publishing'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'publish_revision', FALSE),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="scheduler_publish_enable"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['scheduler']['publish']['advanced'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Advanced options'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#states' => array(
+      'visible' => array(
+        ':input[name="scheduler_publish_enable"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['scheduler']['publish']['advanced']['scheduler_publish_past_date'] = array(
+    '#type' => 'radios',
+    '#title' => t('Action to be taken for publication dates in the past'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'publish_past_date', 'error'),
+    '#options' => array(
+      'error' => t('Display an error message - do not allow dates in the past'),
+      'publish' => t('Publish the content immediately after saving'),
+      'schedule' => t('Schedule the content for publication on the next cron run'),
+    ),
+  );
+
+  $form['scheduler']['unpublish'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Unpublishing'),
+    '#collapsible' => FALSE,
+    '#weight' => 2,
+    '#group' => 'scheduler_settings',
+  );
+  $form['scheduler']['unpublish']['scheduler_unpublish_enable'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable scheduled unpublishing for this content type'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'unpublish_enable', FALSE),
+  );
+  $form['scheduler']['unpublish']['scheduler_unpublish_required'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Require scheduled unpublishing'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'unpublish_required', FALSE),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="scheduler_unpublish_enable"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  $form['scheduler']['unpublish']['scheduler_unpublish_revision'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Create a new revision on unpublishing'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'unpublish_revision', FALSE),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="scheduler_unpublish_enable"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+  // The 'node_edit_layout' fieldset contains options to alter the layout of
+  // node edit pages.
+  $form['scheduler']['node_edit_layout'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Node edit page layout'),
+    '#collapsible' => FALSE,
+    '#weight' => 3,
+    '#group' => 'scheduler_settings',
+    // The #states processing only caters for AND and does not do OR. So to set
+    // the state to visible if either of the boxes are ticked we use the fact
+    // that logical 'X = A or B' is equivalent to 'not X = not A and not B'.
+    '#states' => array(
+      '!visible' => array(
+        ':input[name="scheduler_publish_enable"]' => array('!checked' => TRUE),
+        ':input[name="scheduler_unpublish_enable"]' => array('!checked' => TRUE),
+      ),
+    ),
+  );
+  $form['scheduler']['node_edit_layout']['scheduler_use_vertical_tabs'] = array(
+    '#type' => 'radios',
+    '#title' => t('Display scheduling options as'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'use_vertical_tabs', 1),
+    '#options' => array(
+      1 => t('Vertical tab'),
+      0 => t('Separate fieldset'),
+    ),
+    '#description' => t('Use this option to specify how the scheduling options will be displayed when editing a node.'),
+  );
+  $form['scheduler']['node_edit_layout']['scheduler_expand_fieldset'] = array(
+    '#type' => 'radios',
+    '#title' => t('Expand fieldset'),
+    '#default_value' => $type->getThirdPartySetting('scheduler', 'expand_fieldset', 0),
+    '#options' => array(
+      0 => t('Expand only when a scheduled date exists or when a date is required'),
+      1 => t('Always open the fieldset, even if no dates exist'),
+    ),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="scheduler_use_vertical_tabs"]' => array('value' => 0),
+      ),
+    ),
+  );
+
+  $form['#entity_builders'][] = 'scheduler_form_node_type_form_builder';
 }
