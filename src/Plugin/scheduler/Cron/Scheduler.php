@@ -7,11 +7,12 @@
 
 namespace Drupal\scheduler\Plugin\scheduler\Cron;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Component\Plugin\PluginBase;
 use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\node\NodeInterface;
-use Drupal\scheduler\SchedulerCronPluginBase;
+use Drupal\scheduler\SchedulerCronPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -23,7 +24,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   description = @Translation("Default scheduler cron.")
  * )
  */
-class Scheduler extends SchedulerCronPluginBase {
+class Scheduler extends PluginBase implements SchedulerCronPluginInterface, ContainerFactoryPluginInterface {
 
   /**
    * The entity query object.
@@ -48,15 +49,13 @@ class Scheduler extends SchedulerCronPluginBase {
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The factory for configuration objects.
    * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
    *   The factory for query objects.
    * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
    *   The date formatter
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory, QueryFactory $query_factory, DateFormatter $date_formatter) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $config_factory);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, QueryFactory $query_factory, DateFormatter $date_formatter) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->queryFactory = $query_factory;
     $this->dateFormatter = $date_formatter;
   }
@@ -69,7 +68,6 @@ class Scheduler extends SchedulerCronPluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('config.factory'),
       $container->get('entity.query'),
       $container->get('date.formatter')
     );
@@ -115,12 +113,13 @@ class Scheduler extends SchedulerCronPluginBase {
     // Update timestamps.
     $published_on = $node->get('publish_on')->value;
     $node->set('changed', $published_on);
+    $node_type = $node->type->entity;
     $old_creation_date = $node->getCreatedTime();
-    if ($this->config->get('publish_touch_' . $node->getType(), 0)) {
+    if ($node_type->getThirdPartySetting('scheduler', 'publish_touch', FALSE)) {
       $node->setCreatedTime($published_on);
     }
 
-    if ($this->config->get('publish_revision_' . $node->getType(), 0)) {
+    if ($node_type->getThirdPartySetting('scheduler', 'publish_revision', FALSE)) {
       $node->setNewRevision();
       // Use a core date format to guarantee a time is included.
       $node->set('revision_log', t('Node published by Scheduler on @now. Previous creation date was @date.', [
@@ -137,8 +136,8 @@ class Scheduler extends SchedulerCronPluginBase {
     // Update timestamps.
     $old_change_date = $node->getChangedTime();
     $node->set('changed', $node->get('unpublish_on')->value);
-
-    if ($this->config->get('unpublish_revision_' . $node->getType(), 0)) {
+    $node_type = $node->type->entity;
+    if ($node_type->getThirdPartySetting('scheduler', 'unpublish_revision', FALSE)) {
       $node->setNewRevision();
       // Use a core date format to guarantee a time is included.
       $node->set('revision_log', t('Node unpublished by Scheduler on @now. Previous change date was @date.', [
@@ -152,8 +151,26 @@ class Scheduler extends SchedulerCronPluginBase {
    * {@inheritdoc}
    */
   public function publishImmediately(NodeInterface $node) {
-    if ($this->config->get('publish_touch_' . $node->getType(), 0)) {
+    $node_type = $node->type->entity;
+    if ($node_type->getThirdPartySetting('scheduler', 'publish_touch', FALSE)) {
       $node->setCreatedTime($node->get('publish_on')->value);
     }
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function allowPublishing(NodeInterface $node) {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function publish(NodeInterface $node) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function unPublish(NodeInterface $node) {}
 }
