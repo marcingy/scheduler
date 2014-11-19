@@ -29,6 +29,6 @@ node_type.third_party.scheduler:
     use_vertical_tabs:
       type: boolean
       label: 'Use vertical tabs'
-    expand_fieldset
+    expand_fieldset:
       type: boolean
       label: 'Expand fieldset'
