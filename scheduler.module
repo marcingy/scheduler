@@ -6,10 +6,12 @@
  */
 
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeTypeInterface;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_form_alter().
@@ -99,6 +101,7 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
   if ($entity_type->id() === 'node') {
     $fields['publish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Publish on'))
+      ->setDescription(t('Date node will be published on.'))
       ->setTranslatable(TRUE)
       ->setDisplayOptions('form', array(
         'type' => 'datetime_timestamp_none',
@@ -111,9 +114,10 @@ function scheduler_entity_base_field_info(EntityTypeInterface $entity_type) {
     $fields['unpublish_on'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(t('Unpublish on'))
       ->setTranslatable(TRUE)
+      ->setDescription(t('Date node will be unpublished on.'))
       ->setDisplayOptions('form', array(
         'type' => 'datetime_timestamp_none',
-        'weight' => 10,
+        'weight' => 11,
       ))
       ->setDisplayConfigurable('form', TRUE)
       ->setSetting('unsigned', TRUE)
@@ -245,7 +249,7 @@ function _scheduler_unpublish($plugins) {
 /**
  * Implements hook_node_validate().
  */
-function scheduler_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupal\Core\Form\FormStateInterface $form_state) {
+function scheduler_node_validate(NodeInterface $node, $form, FormStateInterface $form_state) {
   $publish_on = $node->get('publish_on')->value;
 
   /** @var \Drupal\node\NodeTypeInterface $node_type */
@@ -275,7 +279,7 @@ function scheduler_node_validate(\Drupal\node\NodeInterface $node, $form, \Drupa
 /**
  * Implements hook_node_presave().
  */
-function scheduler_node_presave(\Drupal\node\NodeInterface $node) {
+function scheduler_node_presave(NodeInterface $node) {
   $publish_on = $node->get('publish_on')->value;
   if (!empty($publish_on)) {
     $publication_allowed = TRUE;
@@ -305,8 +309,8 @@ function scheduler_node_presave(\Drupal\node\NodeInterface $node) {
       // been prevented by other modules. Those modules have to display a
       // message themselves explaining why publication is denied.
       if ($publication_allowed) {
-        $date_format = \Drupal::config('scheduler.settings')->get('date_format', 'Y-m-d H:i:s');
-        drupal_set_message(t('This post is unpublished and will be published @publish_time.', array('@publish_time' => format_date($publish_on, 'custom', $date_format))), 'status', FALSE);
+        $date_format = DateFormat::load(\Drupal::config('scheduler.settings')->get('date_format', 'html_datetime'));
+        drupal_set_message(t('This post is unpublished and will be published @publish_time.', array('@publish_time' => format_date($publish_on, 'custom', $date_format->getPattern()))), 'status', FALSE);
       }
     }
   }
