@@ -1,0 +1,8 @@
+type: module
+name: Scheduler test
+description: 'Test Scheduler module.'
+core: 8.x
+version: VERSION
+package: Testing
+dependencies:
+  - scheduler

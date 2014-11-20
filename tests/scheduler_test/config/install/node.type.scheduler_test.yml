@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies: {  }
+name: Scheduler test
+type: scheduler_test
+description: 'Test scheduling'
+help: 'Test scheduling'
+settings:
+  node:
+    preview: 1
+    submitted: false
+    options:
+      revision: false

@@ -173,10 +173,14 @@ function _scheduler_publish($plugins) {
   $nodes = entity_load_multiple('node', $nids);
   foreach ($nodes as $node) {
     // Check that other modules allow the action on this node.
+    $publish = TRUE;
     foreach ($plugins as $plugin) {
       if (!$plugin->allowPublishing($node)) {
-        continue;
+        $publish = FALSE;
       }
+    }
+    if (empty($publish)) {
+      continue;
     }
 
     // Perform tweaks to the node.
@@ -218,10 +222,14 @@ function _scheduler_unpublish($plugins) {
   $nodes = entity_load_multiple('node', $nids);
   foreach ($nodes as $node) {
     // Check that other modules allow the action on this node.
+    $unpublish = TRUE;
     foreach ($plugins as $plugin) {
       if (!$plugin->allowUnPublishing($node)) {
-        continue;
+        $unpublish = FALSE;
       }
+    }
+    if (empty($unpublish)) {
+      continue;
     }
 
     // Perform tweaks to the node.
