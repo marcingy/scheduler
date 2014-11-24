@@ -9,6 +9,7 @@
 namespace Drupal\scheduler\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\node\Entity\NodeType;
 
 /**
  * Base test class for scheduler tests.
@@ -29,7 +30,7 @@ class SchedulerTest extends WebTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('entity.definition_update_manager')->applyUpdates();
+    $this->container->get('entity.definition_update_manager')->applyUpdates();
   }
 
   /**
@@ -38,7 +39,7 @@ class SchedulerTest extends WebTestBase {
   public function testAllowedPublishing() {
 
     // Create a content type programmaticaly.
-    $type = entity_load('node_type', 'scheduler_test');
+    $type = NodeType::load('scheduler_test');
 
     $fields = array(
       'publish_enable' => 'scheduler_publish_enable',
