@@ -7,6 +7,7 @@ dependencies:
   module:
     - field
     - node
+    - scheduler
     - user
 id: scheduled_articles
 label: 'Scheduled articles'
@@ -962,10 +963,9 @@ display:
       field_langcode_add_to_query: null
       path: user/%/scheduler
       access:
-        type: none
+        type: perm_uid
         options:
           perm: 'view scheduled content'
-        provider: views
       defaults:
         access: false
         arguments: false
