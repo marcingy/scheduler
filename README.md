@@ -5,14 +5,15 @@ This module allows nodes to be published and unpublished on specified dates.
 INSTALLATION
 --------------------------------------------------------------------------
 1. Copy the scheduler.module to your modules directory
-2. Enable module, database schemas will be setup automatically.     
-3. Grant users the permission "schedule (un)publishing of nodes" so they can
+2. Enable module.
+3. Visit mysite/update.php and apply the necessary schema updates.
+4. Grant users the permission "schedule (un)publishing of nodes" so they can
    set when the nodes they create are to be (un)published.
    
-4. Visit admin > settings > content-types and click on any node type and
+5. Visit admin > settings > content-types and click on any node type and
    check the box "enable scheduled (un)publishing" for this node type
    
-5. Repeat for all node types that you want scheduled publishing for
+6. Repeat for all node types that you want scheduled publishing for
 
 The scheduler will run with Drupal's cron.php, and will (un)publish nodes
 timed on or before the time at which cron runs.  If you'd like finer
