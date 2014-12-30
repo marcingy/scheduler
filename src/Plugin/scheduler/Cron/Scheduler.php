@@ -103,7 +103,7 @@ class Scheduler extends PluginBase implements SchedulerCronPluginInterface, Cont
     // as this implies that scheduled publishing has been blocked by one of the
     // API functions we provide. Hence unpublishing should be halted too.
     $published_on = $node->get('publish_on')->value;
-    return !empty($published_on) && $published_on <= REQUEST_TIME;
+    return empty($published_on) || !($published_on <= REQUEST_TIME);
   }
 
   /**

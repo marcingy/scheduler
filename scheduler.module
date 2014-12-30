@@ -240,7 +240,7 @@ function _scheduler_unpublish($plugins) {
     // We always want this to happen.
     $node->set('unpublish_on', NULL);
 
-    \Drupal::logger('scheduler')->notice('@type: scheduled unpublishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->getId(), array('alias' => TRUE)));
+    \Drupal::logger('scheduler')->notice('@type: scheduled unpublishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->Id(), array('alias' => TRUE)));
     $action_manger = \Drupal::service('plugin.manager.action');
     $action = $action_manger->createInstance('node_unpublish_action');
     $action->execute($node);
