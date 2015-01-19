@@ -62,4 +62,14 @@ class SchedulerAdminForm extends ConfigFormBase {
     parent::submitForm($form, $form_state);
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEditableConfigNames() {
+    return [
+      'extra_info',
+      'date_format',
+    ];
+  }
+
 }
