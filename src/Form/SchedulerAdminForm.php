@@ -54,7 +54,7 @@ class SchedulerAdminForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->config('scheduler.settings')
+    $this->configFactory()->getEditable('scheduler.settings')
       ->set('extra_info', $form_state->getValue('scheduler_extra_info'))
       ->set('date_format', $form_state->getValue('scheduler_date_format'))
       ->save();
