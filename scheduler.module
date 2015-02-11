@@ -87,6 +87,7 @@ function scheduler_form_node_form_alter(&$form, FormStateInterface $form_state) 
         }
       }
     }
+    $form['#validate'][] = 'scheduler_form_validate';
   }
 
   foreach ($access as $field => $data) {
@@ -190,8 +191,7 @@ function _scheduler_publish($plugins) {
 
     // We always want this to happen.
     $node->set('publish_on', NULL);
-
-    \Drupal::logger('scheduler')->notice('@type: scheduled publishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->id(), array('alias' => TRUE)));
+    \Drupal::logger('scheduler')->notice('@type: scheduled publishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()));
     $action_manger = \Drupal::service('plugin.manager.action');
     $action = $action_manger->createInstance('node_publish_action');
     $action->execute($node);
@@ -240,7 +240,7 @@ function _scheduler_unpublish($plugins) {
     // We always want this to happen.
     $node->set('unpublish_on', NULL);
 
-    \Drupal::logger('scheduler')->notice('@type: scheduled unpublishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()), _l(t('view'), 'node/' . $node->Id(), array('alias' => TRUE)));
+    \Drupal::logger('scheduler')->notice('@type: scheduled unpublishing of %title.', array('@type' => $node->getType(), '%title' => $node->getTitle()));
     $action_manger = \Drupal::service('plugin.manager.action');
     $action = $action_manger->createInstance('node_unpublish_action');
     $action->execute($node);
@@ -255,20 +255,21 @@ function _scheduler_unpublish($plugins) {
 }
 
 /**
- * Implements hook_node_validate().
+ * Validate the scheduler data.
  */
-function scheduler_node_validate(NodeInterface $node, $form, FormStateInterface $form_state) {
-  $publish_on = $node->get('publish_on')->value;
-
+function scheduler_form_validate($form, FormStateInterface $form_state) {
+  $publish_on = $form_state->getValue('publish_on');
+  $publish_on = !empty($publish_on[0]['value']) ? $publish_on[0]['value']->getTimestamp() : '';
   /** @var \Drupal\node\NodeTypeInterface $node_type */
-  $node_type = $node->type->entity;
+  $node_type = $form_state->getFormObject()->getEntity()->type->entity;
   if (!empty($publish_on)) {
     if ($node_type->getThirdPartySetting('scheduler', 'publish_past_date', 'error') == 'error' && $publish_on < REQUEST_TIME) {
       $form_state->setErrorByName('publish_on', t("The 'publish on' date must be in the future"));
     }
   }
 
-  $unpublish_on = $node->get('unpublish_on')->value;
+  $unpublish_on = $form_state->getValue('unpublish_on');
+  $unpublish_on = !empty($unpublish_on[0]['value']) ? $unpublish_on[0]['value']->getTimestamp() : '';
   if (!empty($unpublish_on) && $unpublish_on < REQUEST_TIME) {
     $form_state->setErrorByName('unpublish_on', t("The 'unpublish on' date must be in the future"));
   }
