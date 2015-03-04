@@ -41,6 +41,6 @@ class SchedulerController extends ControllerBase implements ContainerInjectionIn
    * {@inheritdoc}
    */
   public function accessUID(AccountInterface $account) {
-    return $account->id() == $this->currentRoute->getParameter('arg_0') ? AccessResult::allowed() : AccessResult::neutral();
+    return $account->id() == $this->currentRoute->getParameter('arg_0') || $account->hasPermission('view scheduled content') ? AccessResult::allowed() : AccessResult::neutral();
   }
 }

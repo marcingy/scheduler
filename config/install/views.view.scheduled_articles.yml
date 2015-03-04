@@ -5,9 +5,9 @@ dependencies:
     - field.storage.user.first_name
     - field.storage.user.last_name
   module:
-    - field
     - node
     - scheduler
+    - text
     - user
 id: scheduled_articles
 label: 'Scheduled articles'
@@ -42,7 +42,7 @@ display:
           disable_sql_rewrite: false
           distinct: false
           replica: false
-          query_comment: false
+          query_comment: ''
           query_tags: {  }
         provider: views
         dependencies: {  }
@@ -195,7 +195,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: false
             ellipsis: false
             more_link: false
@@ -249,7 +249,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -304,7 +304,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -360,7 +360,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -388,8 +388,8 @@ display:
           group_column: value
           group_columns: {  }
           group_rows: true
-          delta_limit: all
-          delta_offset: '0'
+          delta_limit: 0
+          delta_offset: 0
           delta_reversed: false
           delta_first_last: false
           multi_type: separator
@@ -428,7 +428,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -456,8 +456,8 @@ display:
           group_column: value
           group_columns: {  }
           group_rows: true
-          delta_limit: all
-          delta_offset: '0'
+          delta_limit: 0
+          delta_offset: 0
           delta_reversed: false
           delta_first_last: false
           multi_type: separator
@@ -494,7 +494,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -552,7 +552,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -577,7 +577,7 @@ display:
           type: yes-no
           type_custom_true: ''
           type_custom_false: ''
-          not: '0'
+          not: false
           plugin_id: boolean
           provider: views
         publish_on:
@@ -610,7 +610,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -667,7 +667,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -724,7 +724,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -778,7 +778,7 @@ display:
             suffix: ''
             target: ''
             nl2br: false
-            max_length: ''
+            max_length: null
             word_boundary: true
             ellipsis: true
             more_link: false
@@ -904,12 +904,14 @@ display:
           relationship: none
           group_type: group
           admin_label: ''
+          empty: true
+          tokenize: false
+          content:
+            value: 'No results'
+            format: contributor_axs_html
           dependencies:
             module:
               - views
-          empty: true
-          tokenize: false
-          content: 'No nodes are scheduled to be published or unpublished'
           format: xxxx
           plugin_id: text
           provider: views
@@ -934,6 +936,7 @@ display:
         operator: AND
         groups:
           1: OR
+      display_extenders: {  }
   page_1:
     display_plugin: page
     id: page_1
@@ -952,6 +955,8 @@ display:
         weight: 100
         context: '0'
         menu_name: main
+      display_extenders: {  }
+      rendering_language: '***LANGUAGE_site_default***'
   page_2:
     display_plugin: page
     id: page_2
@@ -963,9 +968,7 @@ display:
       field_langcode_add_to_query: null
       path: user/%/scheduler
       access:
-        type: perm_uid
-        options:
-          perm: 'view scheduled content'
+        type: scheduler_uid
       defaults:
         access: false
         arguments: false
@@ -1009,3 +1012,5 @@ display:
           not: false
           plugin_id: numeric
           provider: views
+      display_extenders: {  }
+      rendering_language: '***LANGUAGE_site_default***'

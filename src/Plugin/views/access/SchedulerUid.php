@@ -2,16 +2,15 @@
 
 /**
  * @file
- * Definition of Drupal\scheduler\Plugin\views\access\PermissionUid.
+ * Definition of Drupal\scheduler\Plugin\views\access\SchedulerUid.
  */
 
 namespace Drupal\scheduler\Plugin\views\access;
 
-use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\PermissionHandlerInterface;
-use Drupal\user\Plugin\views\access\Permission;
+use Drupal\views\Plugin\views\access\AccessPluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Route;
 
@@ -21,12 +20,12 @@ use Symfony\Component\Routing\Route;
  * @ingroup views_access_plugins
  *
  * @ViewsAccess(
- *   id = "perm_uid",
- *   title = @Translation("Permission and uid"),
- *   help = @Translation("Access will be granted to users with the specified permission string or matching UID.")
+ *   id = "scheduler_uid",
+ *   title = @Translation("Scheduler and uid"),
+ *   help = @Translation("Access will be granted to users with the view scheduled content permission or matching UID.")
  * )
  */
-class PermissionUid extends Permission {
+class SchedulerUid extends AccessPluginBase {
 
   /**
    * The route.
@@ -71,15 +70,13 @@ class PermissionUid extends Permission {
    * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
-    return $account->hasPermission($this->options['perm']) || ($account->id() == $this->currentRoute->getParameter('arg_0'));
+    return $account->hasPermission('view scheduled content') || ($account->id() == $this->currentRoute->getParameter('arg_0'));
   }
 
   /**
    * {@inheritdoc}
    */
   public function alterRouteDefinition(Route $route) {
-    $route->setOption('_access_mode', AccessManagerInterface::ACCESS_MODE_ANY);
-    $route->setRequirement('_permission', $this->options['perm']);
     $route->setRequirement('_custom_access', 'Drupal\scheduler\Controller\SchedulerController::accessUID');
   }
 }
